@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var wg sync.WaitGroup
-	proxyServer, err := net.Listen("tcp", "172.17.0.4:8000")
+	proxyServer, err := net.Listen("tcp", "127.0.0.4:8000")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,12 +26,21 @@ func main() {
 			go func(client net.Conn) {
 				defer client.Close()
 
-				server, err := net.Dial("tcp", "172.17.0.2:8000")
+				server, err := net.Dial("tcp", "127.0.0.2:8000")
 				if err != nil {
 					log.Println(err)
 					return
 				}
 				defer server.Close()
+
+				// Forward the message to the actual server
+				_, err = io.Copy(server, client)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				// Forward the response back to the client
 				err = proxy(client, server)
 				if err != nil && err != io.EOF {
 					log.Println(err)
